@@ -27,21 +27,31 @@ const controls = new OrbitControls(camera, canvas);
 controls.enableDamping = true;
 controls.dampingFactor = 0.05;
 controls.enablePan = false;
-controls.enableZoom = false; // wheel scrolls the page ("scroll to enter")
+controls.enableZoom = false; // wheel / trackpad scrolls the page
 controls.minDistance = 4.5;
 controls.maxDistance = 14;
 controls.autoRotate = true;
 controls.autoRotateSpeed = 0.35;
 controls.target.set(0, 0.2, 0);
 
-// Page scroll still works while pointer is over the full-screen canvas
-canvas.addEventListener(
-  "wheel",
-  (e) => {
-    window.scrollBy({ top: e.deltaY, left: 0, behavior: "auto" });
-  },
-  { passive: true }
-);
+// Touch devices: never capture gestures — page must scroll freely.
+// Desktop: mouse-drag orbits; wheel scrolls the document.
+const coarsePointer = window.matchMedia("(pointer: coarse)").matches;
+const noHover = window.matchMedia("(hover: none)").matches;
+const touchFirst = coarsePointer || noHover;
+
+if (touchFirst) {
+  controls.enabled = false;
+} else {
+  // Page scroll while cursor is over the full-screen canvas
+  canvas.addEventListener(
+    "wheel",
+    (e) => {
+      window.scrollBy({ top: e.deltaY, left: 0, behavior: "auto" });
+    },
+    { passive: true }
+  );
+}
 
 const root = new THREE.Group();
 scene.add(root);
