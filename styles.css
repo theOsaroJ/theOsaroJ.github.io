@@ -16,24 +16,29 @@
 }
 
 html {
-  scroll-behavior: smooth;
+  scroll-behavior: auto;
 }
 
 html,
 body {
-  touch-action: pan-y;
+  margin: 0;
+  width: 100%;
+  min-height: 100%;
+  overflow-x: clip;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
 }
 
 body {
-  margin: 0;
-  min-height: 100vh;
   color: var(--ink);
   background: var(--bg);
   font-family: var(--sans);
   font-weight: 300;
-  overflow-x: hidden;
+  position: relative;
 }
 
+/* Default: scene is decorative only so phones can always scroll */
 #scene {
   position: fixed;
   inset: 0;
@@ -41,13 +46,8 @@ body {
   height: 100%;
   z-index: 0;
   display: block;
-  /* Allow vertical page scroll on touch; desktop drag handled by OrbitControls */
+  pointer-events: none;
   touch-action: pan-y;
-  cursor: grab;
-}
-
-#scene:active {
-  cursor: grabbing;
 }
 
 .grain {
@@ -60,20 +60,36 @@ body {
   mix-blend-mode: overlay;
 }
 
-/* Let the canvas receive drag; only UI chrome captures clicks */
 .top,
 main,
 footer {
   position: relative;
   z-index: 2;
+  pointer-events: auto;
+}
+
+/* Desktop orbit mode (toggled by JS on real mouse desktops only) */
+body.orbit-desktop #scene {
+  pointer-events: auto;
+  cursor: grab;
+  touch-action: none;
+}
+
+body.orbit-desktop #scene:active {
+  cursor: grabbing;
+}
+
+body.orbit-desktop .top,
+body.orbit-desktop main,
+body.orbit-desktop footer {
   pointer-events: none;
 }
 
-.top a,
-main a,
-footer a,
-.panel,
-.btn {
+body.orbit-desktop .top a,
+body.orbit-desktop main a,
+body.orbit-desktop footer a,
+body.orbit-desktop .panel,
+body.orbit-desktop .btn {
   pointer-events: auto;
 }
 
@@ -216,30 +232,19 @@ h1 {
 }
 
 .hint-mobile {
+  display: inline;
+}
+
+.hint-desktop {
   display: none;
 }
 
-@media (hover: none), (pointer: coarse) {
-  .hint-desktop {
-    display: none;
-  }
+body.orbit-desktop .hint-mobile {
+  display: none;
+}
 
-  .hint-mobile {
-    display: inline;
-  }
-
-  /* On phones/tablets the scene is visual-only — never steal the swipe */
-  #scene {
-    cursor: default;
-    pointer-events: none;
-    touch-action: pan-y;
-  }
-
-  .top,
-  main,
-  footer {
-    pointer-events: auto;
-  }
+body.orbit-desktop .hint-desktop {
+  display: inline;
 }
 
 .panel {
