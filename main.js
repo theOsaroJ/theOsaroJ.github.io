@@ -27,23 +27,25 @@ const controls = new OrbitControls(camera, canvas);
 controls.enableDamping = true;
 controls.dampingFactor = 0.05;
 controls.enablePan = false;
-controls.enableZoom = false; // wheel / trackpad scrolls the page
+controls.enableZoom = false;
 controls.minDistance = 4.5;
 controls.maxDistance = 14;
 controls.autoRotate = true;
 controls.autoRotateSpeed = 0.35;
 controls.target.set(0, 0.2, 0);
 
-// Touch devices: never capture gestures — page must scroll freely.
-// Desktop: mouse-drag orbits; wheel scrolls the document.
-const coarsePointer = window.matchMedia("(pointer: coarse)").matches;
-const noHover = window.matchMedia("(hover: none)").matches;
-const touchFirst = coarsePointer || noHover;
+// Mobile-first: orbit OFF so the page always scrolls.
+// Enable mouse-drag orbit only on true desktop (mouse + hover, no touch).
+const hasTouch = "ontouchstart" in window || navigator.maxTouchPoints > 0;
+const desktopMouse =
+  !hasTouch &&
+  window.matchMedia("(hover: hover) and (pointer: fine)").matches;
 
-if (touchFirst) {
-  controls.enabled = false;
-} else {
-  // Page scroll while cursor is over the full-screen canvas
+controls.enabled = false;
+
+if (desktopMouse) {
+  document.body.classList.add("orbit-desktop");
+  controls.enabled = true;
   canvas.addEventListener(
     "wheel",
     (e) => {
