@@ -36,6 +36,12 @@ body {
   height: 100%;
   z-index: 0;
   display: block;
+  touch-action: none;
+  cursor: grab;
+}
+
+#scene:active {
+  cursor: grabbing;
 }
 
 .grain {
@@ -48,11 +54,21 @@ body {
   mix-blend-mode: overlay;
 }
 
+/* Let the canvas receive drag; only UI chrome captures clicks */
 .top,
 main,
 footer {
   position: relative;
   z-index: 2;
+  pointer-events: none;
+}
+
+.top a,
+main a,
+footer a,
+.panel,
+.btn {
+  pointer-events: auto;
 }
 
 .top {
