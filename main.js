@@ -189,8 +189,206 @@ function buildLattice() {
   return { group, probes, probeVel, probePos, ring, ring2, points };
 }
 
+/** Subtle quantum layer: Bloch sphere, entangled pairs, phase interference */
+function buildQuantumLayer() {
+  const group = new THREE.Group();
+  group.position.set(2.35, 1.1, -1.4);
+  group.scale.setScalar(0.92);
+
+  const qcSteel = 0x8fb4c0;
+  const qcCopper = 0xd4894a;
+  const thin = (color, opacity) =>
+    new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity,
+      depthWrite: false,
+    });
+
+  // Bloch sphere shell (very faint)
+  const bloch = new THREE.Mesh(
+    new THREE.SphereGeometry(0.95, 48, 32),
+    new THREE.MeshBasicMaterial({
+      color: qcSteel,
+      transparent: true,
+      opacity: 0.045,
+      wireframe: true,
+      depthWrite: false,
+    })
+  );
+  group.add(bloch);
+
+  // Meridians + equator
+  const meridianMat = thin(qcSteel, 0.2);
+  const equator = new THREE.Mesh(
+    new THREE.TorusGeometry(0.95, 0.005, 8, 96),
+    meridianMat
+  );
+  equator.rotation.x = Math.PI / 2;
+  group.add(equator);
+
+  const m1 = equator.clone();
+  m1.rotation.set(0, 0, 0);
+  m1.material = thin(qcCopper, 0.16);
+  group.add(m1);
+
+  const m2 = equator.clone();
+  m2.rotation.set(0, Math.PI / 2, 0);
+  m2.material = thin(qcSteel, 0.12);
+  group.add(m2);
+
+  // |0> / |1> poles
+  const poleGeo = new THREE.SphereGeometry(0.035, 12, 12);
+  const pole0 = new THREE.Mesh(poleGeo, thin(qcCopper, 0.85));
+  pole0.position.y = 0.95;
+  const pole1 = new THREE.Mesh(poleGeo, thin(qcSteel, 0.85));
+  pole1.position.y = -0.95;
+  group.add(pole0, pole1);
+
+  // State vector (precessing)
+  const stateTip = new THREE.Mesh(
+    new THREE.SphereGeometry(0.048, 14, 14),
+    thin(0xe8e4dc, 0.95)
+  );
+  const stateArmGeo = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(0, 0, 0),
+    new THREE.Vector3(0, 0.95, 0),
+  ]);
+  const stateArm = new THREE.Line(
+    stateArmGeo,
+    new THREE.LineBasicMaterial({
+      color: qcCopper,
+      transparent: true,
+      opacity: 0.55,
+    })
+  );
+  const state = new THREE.Group();
+  state.add(stateArm, stateTip);
+  stateTip.position.y = 0.95;
+  group.add(state);
+
+  // Entangled pair — two qubits linked by a phase cord
+  const pair = new THREE.Group();
+  pair.position.set(-3.6, -0.35, 1.6);
+  const qGeo = new THREE.SphereGeometry(0.06, 14, 14);
+  const qA = new THREE.Mesh(qGeo, thin(qcCopper, 0.9));
+  const qB = new THREE.Mesh(qGeo, thin(qcSteel, 0.9));
+  qA.position.set(-0.55, 0.15, 0);
+  qB.position.set(0.55, -0.15, 0);
+  const cordPts = [];
+  for (let i = 0; i <= 24; i++) {
+    const u = i / 24;
+    const x = THREE.MathUtils.lerp(qA.position.x, qB.position.x, u);
+    const y =
+      THREE.MathUtils.lerp(qA.position.y, qB.position.y, u) +
+      Math.sin(u * Math.PI) * 0.22;
+    const z = Math.sin(u * Math.PI * 2) * 0.08;
+    cordPts.push(new THREE.Vector3(x, y, z));
+  }
+  const cord = new THREE.Line(
+    new THREE.BufferGeometry().setFromPoints(cordPts),
+    new THREE.LineBasicMaterial({
+      color: 0xcfc8bb,
+      transparent: true,
+      opacity: 0.35,
+    })
+  );
+  pair.add(qA, qB, cord);
+  group.add(pair);
+
+  // Interference ripples (phase rings)
+  const ripples = [];
+  for (let i = 0; i < 3; i++) {
+    const r = new THREE.Mesh(
+      new THREE.TorusGeometry(1.35 + i * 0.35, 0.004, 8, 100),
+      thin(i % 2 ? qcCopper : qcSteel, 0.1 - i * 0.02)
+    );
+    r.rotation.x = Math.PI / 2 + i * 0.15;
+    r.position.set(-1.2, -0.8, 2.1);
+    group.add(r);
+    ripples.push(r);
+  }
+
+  // Faint “gate rail” — abstract circuit fragment
+  const rail = new THREE.Group();
+  rail.position.set(-2.8, 1.55, -0.4);
+  const railMat = new THREE.LineBasicMaterial({
+    color: qcSteel,
+    transparent: true,
+    opacity: 0.22,
+  });
+  const railLine = new THREE.Line(
+    new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(-1.2, 0, 0),
+      new THREE.Vector3(1.2, 0, 0),
+    ]),
+    railMat
+  );
+  rail.add(railLine);
+  // Two square “gates” on the rail
+  for (const x of [-0.45, 0.35]) {
+    const g = new THREE.LineLoop(
+      new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(x - 0.12, -0.12, 0),
+        new THREE.Vector3(x + 0.12, -0.12, 0),
+        new THREE.Vector3(x + 0.12, 0.12, 0),
+        new THREE.Vector3(x - 0.12, 0.12, 0),
+      ]),
+      new THREE.LineBasicMaterial({
+        color: qcCopper,
+        transparent: true,
+        opacity: 0.28,
+      })
+    );
+    rail.add(g);
+  }
+  // Control-target hint
+  const ctrl = new THREE.Mesh(
+    new THREE.SphereGeometry(0.03, 10, 10),
+    thin(qcCopper, 0.7)
+  );
+  ctrl.position.set(-0.45, 0.28, 0);
+  const tgt = new THREE.LineLoop(
+    new THREE.BufferGeometry().setFromPoints(
+      [...Array(24)].map((_, i) => {
+        const a = (i / 24) * Math.PI * 2;
+        return new THREE.Vector3(
+          0.35 + Math.cos(a) * 0.08,
+          -0.28 + Math.sin(a) * 0.08,
+          0
+        );
+      })
+    ),
+    new THREE.LineBasicMaterial({
+      color: qcSteel,
+      transparent: true,
+      opacity: 0.35,
+    })
+  );
+  const vert = new THREE.Line(
+    new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(-0.45, 0.28, 0),
+      new THREE.Vector3(-0.45, 0, 0),
+      new THREE.Vector3(0.35, 0, 0),
+      new THREE.Vector3(0.35, -0.28, 0),
+    ]),
+    new THREE.LineBasicMaterial({
+      color: 0xcfc8bb,
+      transparent: true,
+      opacity: 0.2,
+    })
+  );
+  rail.add(ctrl, tgt, vert);
+  group.add(rail);
+
+  return { group, bloch, state, pair, qA, qB, ripples, rail };
+}
+
 const lattice = buildLattice();
 root.add(lattice.group);
+
+const quantum = buildQuantumLayer();
+root.add(quantum.group);
 
 // Ambient glow plane behind content for depth
 const glow = new THREE.Mesh(
@@ -244,6 +442,30 @@ function animate() {
 
   // Subtle size pulse on framework nodes
   lattice.points.material.size = 0.08 + Math.sin(pulse * 1.4) * 0.012;
+
+  // Quantum layer motion — Bloch precession, entanglement antiphase, ripples
+  quantum.bloch.rotation.y = t * 0.15;
+  quantum.bloch.rotation.x = Math.sin(t * 0.2) * 0.08;
+  // State vector walks a path on the sphere (superposition metaphor)
+  const theta = 0.75 + Math.sin(t * 0.55) * 0.45;
+  const phi = t * 0.65;
+  quantum.state.rotation.set(0, 0, 0);
+  quantum.state.rotateY(phi);
+  quantum.state.rotateZ(theta);
+  // Entangled pair pulses out of phase
+  const beat = (1 + Math.sin(t * 2.1)) * 0.5;
+  quantum.qA.material.opacity = 0.45 + beat * 0.5;
+  quantum.qB.material.opacity = 0.45 + (1 - beat) * 0.5;
+  quantum.qA.scale.setScalar(0.85 + beat * 0.35);
+  quantum.qB.scale.setScalar(0.85 + (1 - beat) * 0.35);
+  quantum.pair.rotation.y = Math.sin(t * 0.4) * 0.25;
+  for (let i = 0; i < quantum.ripples.length; i++) {
+    const r = quantum.ripples[i];
+    const phase = t * 0.9 + i * 0.85;
+    r.scale.setScalar(1 + Math.sin(phase) * 0.06);
+    r.material.opacity = 0.04 + (0.5 + 0.5 * Math.sin(phase + 1)) * 0.1;
+  }
+  quantum.rail.position.x = -2.8 + Math.sin(t * 0.25) * 0.05;
 
   controls.update();
   renderer.render(scene, camera);
