@@ -50,11 +50,6 @@ body {
   cursor: grabbing;
 }
 
-html,
-body {
-  touch-action: pan-y;
-}
-
 .grain {
   position: fixed;
   inset: 0;
@@ -233,8 +228,17 @@ h1 {
     display: inline;
   }
 
+  /* On phones/tablets the scene is visual-only — never steal the swipe */
   #scene {
     cursor: default;
+    pointer-events: none;
+    touch-action: pan-y;
+  }
+
+  .top,
+  main,
+  footer {
+    pointer-events: auto;
   }
 }
 
